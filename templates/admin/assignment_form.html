@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if assignment %}Редактировать{% else %}Создать{% endif %} задание{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if assignment %}
+                            <i class="bi bi-pencil me-2"></i>Редактировать задание
+                        {% else %}
+                            <i class="bi bi-plus-circle me-2"></i>Создать задание
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Тема</label>
+                            <select name="topic_id" class="form-select" required>
+                                <option value="">— Выберите тему —</option>
+                                {% for t in topics %}
+                                <option value="{{ t.pk }}"
+                                    {% if assignment and assignment.topic.pk == t.pk %}selected{% endif %}
+                                    {% if request.GET.topic == t.pk|stringformat:'i' %}selected{% endif %}>
+                                    {{ t.section.module.title }} → {{ t.section.title }} → {{ t.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Текст задания</label>
+                            <textarea name="task_text" class="form-control" rows="3" required>{{ assignment.task_text|default:'' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Тип задания</label>
+                            <select name="task_type" class="form-select">
+                                <option value="test" {% if assignment.task_type == 'test' %}selected{% endif %}>Тест</option>
+                                <option value="task" {% if assignment.task_type == 'task' %}selected{% endif %}>Задача</option>
+                                <option value="practical" {% if assignment.task_type == 'practical' %}selected{% endif %}>Практическое</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Варианты ответов (JSON, для тестов)</label>
+                            <textarea name="options" class="form-control font-monospace" rows="4"
+                                      style="font-size: 0.85rem;">{{ assignment.options|default:'[]' }}</textarea>
+                            <small class="text-muted">
+                                Формат: [{"text": "Ответ 1"}, {"text": "Ответ 2"}, ...] или ["Ответ 1", "Ответ 2"]
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Правильный ответ</label>
+                            <input type="text" name="correct_answer" class="form-control"
+                                   value="{{ assignment.correct_answer|default:'' }}">
+                            <small class="text-muted">
+                                Для тестов с вариантами укажите индекс правильного ответа (0, 1, 2...)
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Максимальный балл</label>
+                            <input type="number" name="max_score" class="form-control"
+                                   value="{{ assignment.max_score|default:'10' }}" min="1">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-accent">
+                                <i class="bi bi-check-lg me-1"></i>Сохранить
+                            </button>
+                            <a href="{% url 'admin_assignments' %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

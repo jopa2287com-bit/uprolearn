@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if event %}Редактировать событие{% else %}Новое событие{% endif %} — Панель управления{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">
+                <i class="bi bi-{% if event %}pencil{% else %}plus-circle{% endif %} me-2"></i>
+                {% if event %}Редактировать событие{% else %}Новое событие календаря{% endif %}
+            </h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Название события *</label>
+                    <input type="text" name="title" class="form-control" required
+                           value="{{ event.title|default:'' }}"
+                           placeholder="Например: Лекция по архитектуре процессоров">
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Дата *</label>
+                        <input type="date" name="date" class="form-control" required
+                               value="{% if event %}{{ event.date|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Связанный модуль</label>
+                        <select name="module_id" class="form-select">
+                            <option value="">— Без модуля —</option>
+                            {% for mod in modules %}
+                            <option value="{{ mod.pk }}"
+                                    {% if event.module.pk == mod.pk %}selected{% endif %}>
+                                Модуль {{ mod.order_number }}: {{ mod.title|truncatechars:40 }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Цвет</label>
+                        <select name="color" class="form-select">
+                            {% for color_name, color_label in colors %}
+                            <option value="{{ color_name }}"
+                                    {% if event.color == color_name %}selected{% endif %}>
+                                {{ color_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Описание</label>
+                    <textarea name="description" class="form-control" rows="3"
+                              placeholder="Описание события...">{{ event.description|default:'' }}</textarea>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="is_important" class="form-check-input" id="id_important"
+                           {% if event.is_important %}checked{% endif %}>
+                    <label class="form-check-label" for="id_important">
+                        <i class="bi bi-star-fill text-warning me-1"></i> Важное событие
+                    </label>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-accent">
+                        <i class="bi bi-check-lg me-1"></i>
+                        {% if event %}Сохранить{% else %}Создать{% endif %}
+                    </button>
+                    <a href="{% url 'admin_calendar_events' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg me-1"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Дополнительные материалы — {{ course_title }}{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="bi bi-book me-2"></i>Дополнительные материалы
+            </h1>
+            <p class="text-muted">Учебники, онлайн-ресурсы и инструменты для углублённого изучения</p>
+        </div>
+
+        <div class="row g-4">
+            {% for category in resources %}
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="bi bi-{{ category.icon }} me-2 fs-4"></i>
+                        <h5 class="mb-0">{{ category.title }}</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% for item in category.items %}
+                            <li class="list-group-item d-flex align-items-start">
+                                <span class="resource-icon me-3 mt-1">
+                                    {% if item.type == 'book' %}
+                                        <i class="bi bi-book text-primary"></i>
+                                    {% elif item.type == 'link' %}
+                                        <i class="bi bi-link-45deg text-success"></i>
+                                    {% elif item.type == 'tool' %}
+                                        <i class="bi bi-wrench text-warning"></i>
+                                    {% elif item.type == 'video' %}
+                                        <i class="bi bi-camera-video text-danger"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-text text-secondary"></i>
+                                    {% endif %}
+                                </span>
+                                <div class="flex-grow-1">
+                                    {% if item.url and item.url != '#' %}
+                                        <a href="{{ item.url }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                            {{ item.name }}
+                                            <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+                                        </a>
+                                    {% else %}
+                                        <span>{{ item.name }}</span>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted">
+                                        {% if item.type == 'book' %}Учебное пособие
+                                        {% elif item.type == 'link' %}Веб-ресурс
+                                        {% elif item.type == 'tool' %}Инструмент
+                                        {% elif item.type == 'video' %}Видеолекция
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Quick links to modules -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Материалы по модулям курса</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for mod in modules %}
+                    <div class="col-md-4 col-6">
+                        <div class="module-mini-card">
+                            <i class="bi bi-{{ mod.icon }} module-mini-icon"></i>
+                            <div class="module-mini-info">
+                                <strong>Модуль {{ mod.order_number }}</strong>
+                                <small class="d-block text-muted">{{ mod.title|truncatechars:40 }}</small>
+                                <a href="{% url 'index' %}#mod{{ mod.pk }}" class="stretched-link"></a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-container {
+        padding: 2rem 0;
+    }
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    .resource-icon {
+        font-size: 1.3rem;
+        min-width: 24px;
+        text-align: center;
+    }
+    .list-group-item {
+        transition: background-color 0.2s;
+    }
+    .list-group-item:hover {
+        background-color: rgba(13, 110, 253, 0.04);
+    }
+    .module-mini-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+    .module-mini-card:hover {
+        border-color: var(--accent-color, #0d6efd);
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
+    }
+    .module-mini-icon {
+        font-size: 1.5rem;
+        color: var(--accent-color, #0d6efd);
+    }
+    .module-mini-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .card-header i {
+        color: var(--accent-color, #0d6efd);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Панель управления — {{ course_title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container-fluid">
+        <div class="admin-header">
+            <h1 class="page-title">
+                <i class="bi bi-gear-wide-connected me-2"></i>Панель управления
+            </h1>
+            <p class="text-muted">Управление курсом, студентами и контентом</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'index' %}" class="btn btn-outline-accent btn-sm">
+                    <i class="bi bi-house"></i> На сайт
+                </a>
+                <a href="/django-admin/" class="btn btn-outline-secondary btn-sm" target="_blank">
+                    <i class="bi bi-shield-lock"></i> Django Admin
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row g-2 g-md-3 mb-4">
+            <div class="col-md-2 col-6">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon bg-primary">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="admin-stat-body">
+                        <h4>{{ total_users }}</h4>
+                        <small>Пользователей</small>
+                        <span class="badge bg-info">{{ total_students }} студ.</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon bg-success">
+                        <i class="bi bi-collection"></i>
+                    </div>
+                    <div class="admin-stat-body">
+                        <h4>{{ total_modules }}</h4>
+                        <small>Модулей</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon bg-info">
+                        <i class="bi bi-file-text"></i>
+                    </div>
+                    <div class="admin-stat-body">
+                        <h4>{{ total_topics }}</h4>
+                        <small>Тем</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon bg-warning">
+                        <i class="bi bi-pencil"></i>
+                    </div>
+                    <div class="admin-stat-body">
+                        <h4>{{ total_assignments }}</h4>
+                        <small>Заданий</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-body text-center">
+                        <div class="d-flex flex-wrap justify-content-center gap-1">
+                            <a href="{% url 'admin_module_create' %}" class="btn btn-accent btn-sm flex-fill flex-md-grow-0">
+                                <i class="bi bi-plus-lg"></i> Модуль
+                            </a>
+                            <a href="{% url 'admin_section_create' %}" class="btn btn-accent btn-sm flex-fill flex-md-grow-0">
+                                <i class="bi bi-plus-lg"></i> Раздел
+                            </a>
+                            <a href="{% url 'admin_topic_create' %}" class="btn btn-accent btn-sm flex-fill flex-md-grow-0">
+                                <i class="bi bi-plus-lg"></i> Тему
+                            </a>
+                            <a href="{% url 'admin_assignment_create' %}" class="btn btn-accent btn-sm flex-fill flex-md-grow-0">
+                                <i class="bi bi-plus-lg"></i> Задание
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Structure Management -->
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Структура курса</h5>
+                        <div>
+                            <a href="{% url 'admin_module_create' %}" class="btn btn-sm btn-accent">
+                                <i class="bi bi-plus"></i> Модуль
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="accordion" id="courseStructure">
+                            {% for mod in all_modules %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#mod{{ mod.pk }}">
+                                        <strong>Модуль {{ mod.order_number }}.</strong>
+                                        &nbsp;{{ mod.title }}
+                                        <span class="badge bg-secondary ms-2">{{ mod.sections.count }} разд.</span>
+                                    </button>
+                                </h2>
+                                <div id="mod{{ mod.pk }}" class="accordion-collapse collapse"
+                                     data-bs-parent="#courseStructure">
+                                    <div class="accordion-body p-2">
+                                        <div class="d-flex gap-2 mb-2">
+                                            <a href="{% url 'admin_module_edit' mod.pk %}"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i> Ред.
+                                            </a>
+                                            <a href="{% url 'admin_section_create' %}?module={{ mod.pk }}"
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-plus"></i> Раздел
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    onclick="deleteObj('module', {{ mod.pk }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        {% for sec in mod.sections.all %}
+                                        <div class="ms-3 mb-2 p-2 border-start border-3 border-primary">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <strong>{{ sec.title }}</strong>
+                                                    <span class="badge bg-light text-dark ms-2">
+                                                        {{ sec.topics.count }} тем
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex gap-1">
+                                                    <a href="{% url 'admin_section_edit' sec.pk %}"
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{% url 'admin_topic_create' %}?section={{ sec.pk }}"
+                                                       class="btn btn-sm btn-outline-success">
+                                                        <i class="bi bi-plus"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            {% for topic in sec.topics.all %}
+                                            <div class="ms-3 mt-1 p-1 d-flex justify-content-between align-items-center
+                                                        bg-light rounded">
+                                                <small>
+                                                    <i class="bi bi-file-text me-1"></i>
+                                                    {{ topic.title }}
+                                                    <span class="text-muted">({{ topic.reading_time }} мин)</span>
+                                                </small>
+                                                <div class="d-flex gap-1">
+                                                    <a href="{% url 'admin_topic_edit' topic.pk %}"
+                                                       class="btn btn-sm btn-outline-primary py-0">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{% url 'admin_assignment_create' %}?topic={{ topic.pk }}"
+                                                       class="btn btn-sm btn-outline-info py-0">
+                                                        <i class="bi bi-pencil"></i> Задание
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <div class="ms-3 mt-1 text-muted small">
+                                                <i class="bi bi-dash"></i> Нет тем
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% empty %}
+                                        <div class="text-muted small p-2">Нет разделов</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-journal-plus" style="font-size: 2rem;"></i>
+                                <p class="mt-2">Курс пока пуст. Создайте первый модуль!</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Progress Table -->
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-people me-2"></i>Прогресс студентов</h5>
+                        <a href="{% url 'admin_students' %}" class="btn btn-sm btn-outline-accent">
+                            Полный список
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Студент</th>
+                                        <th>Прогресс</th>
+                                        <th>Выполнено</th>
+                                        <th>Баллы</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in student_stats|slice:":10" %}
+                                    <tr>
+                                        <td class="admin-name-cell">{{ s.student.get_full_name|default:s.student.username }}</td>
+                                        <td style="min-width: 100px;">
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar progress-bar-accent"
+                                                     style="width: {{ s.percent }}%"></div>
+                                            </div>
+                                            <small class="text-muted">{{ s.percent }}%</small>
+                                        </td>
+                                        <td>{{ s.completed }}/{{ s.total }}</td>
+                                        <td>{{ s.total_score }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">
+                                            Нет зарегистрированных студентов
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <!-- Quick Actions -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Быстрые действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'admin_module_create' %}" class="btn btn-outline-accent text-start">
+                                <i class="bi bi-collection me-2"></i>Создать модуль
+                            </a>
+                            <a href="{% url 'admin_section_create' %}" class="btn btn-outline-accent text-start">
+                                <i class="bi bi-folder me-2"></i>Создать раздел
+                            </a>
+                            <a href="{% url 'admin_topic_create' %}" class="btn btn-outline-accent text-start">
+                                <i class="bi bi-file-text me-2"></i>Создать тему
+                            </a>
+                            <a href="{% url 'admin_assignment_create' %}" class="btn btn-outline-accent text-start">
+                                <i class="bi bi-pencil me-2"></i>Создать задание
+                            </a>
+                            <a href="{% url 'admin_students' %}" class="btn btn-outline-info text-start">
+                                <i class="bi bi-people me-2"></i>Список студентов
+                            </a>
+                            <a href="{% url 'admin_assignments' %}" class="btn btn-outline-info text-start">
+                                <i class="bi bi-list-check me-2"></i>Все задания
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-question-circle me-2"></i>Подсказка</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small mb-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Структура курса:</strong>
+                        </p>
+                        <p class="small text-muted">
+                            Модуль → Раздел → Тема → Задания / Интерактивные элементы
+                        </p>
+                        <p class="small mb-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Порядок сортировки</strong> определяется полем
+                            "Порядковый номер".
+                        </p>
+                        <p class="small text-muted">
+                            Для расширенного управления используйте
+                            <a href="/django-admin/" target="_blank">Django Admin</a>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function deleteObj(model, id) {
+        if (confirm('Вы уверены, что хотите удалить этот объект?')) {
+            fetch('/admin-panel/delete/' + model + '/' + id + '/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+            }).then(() => location.reload());
+        }
+    }
+</script>
+{% endblock %}

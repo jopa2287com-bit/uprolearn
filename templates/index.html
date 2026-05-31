@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course_title }} — Главная{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<section class="welcome-banner">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <h1 class="welcome-title">{{ course_title }}</h1>
+                <p class="welcome-subtitle">{{ course_subtitle }}</p>
+                <p class="welcome-description">
+                    Изучите архитектуру и программирование микропроцессоров от основ до
+                    современных технологий. Курс включает 6 модулей с интерактивными
+                    симуляторами, тестами и практическими заданиями.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mt-4">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-accent btn-lg">
+                            <i class="bi bi-bar-chart-line me-2"></i>Мой прогресс
+                        </a>
+                        <!-- Find first topic to start learning -->
+                        {% with first_module=all_modules|first %}
+                            {% if first_module %}
+                                {% with first_section=first_module.sections.all|first %}
+                                    {% if first_section %}
+                                        {% with first_topic=first_section.topics.all|first %}
+                                            {% if first_topic %}
+                                                <a href="{% url 'topic_detail' first_topic.pk %}" class="btn btn-outline-accent btn-lg">
+                                                    <i class="bi bi-play-circle me-2"></i>Продолжить обучение
+                                                </a>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        <a href="{% url 'register' %}" class="btn btn-accent btn-lg">
+                            <i class="bi bi-rocket-takeoff me-2"></i>Начать обучение
+                        </a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-accent btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Войти
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-5 text-center">
+                <div class="welcome-stats">
+                    <div class="stat-circle">
+                        <div class="stat-number">{{ total_topics }}</div>
+                        <div class="stat-label">Тем</div>
+                    </div>
+                    <div class="stat-circle">
+                        <div class="stat-number">6</div>
+                        <div class="stat-label">Модулей</div>
+                    </div>
+                    <div class="stat-circle">
+                        <div class="stat-number">3</div>
+                        <div class="stat-label">Формата</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Overall Progress Bar (if authenticated) -->
+{% if user.is_authenticated %}
+<section class="progress-overview">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="progress-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Общий прогресс</h5>
+                        <span class="progress-text">{{ completed_topics }} / {{ total_topics }} тем</span>
+                    </div>
+                    <div class="progress" style="height: 12px;">
+                        <div class="progress-bar progress-bar-accent" role="progressbar"
+                             style="width: {{ overall_percent }}%;"
+                             aria-valuenow="{{ overall_percent }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    <small class="text-muted mt-1 d-block">{{ overall_percent }}% завершено</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Course Map -->
+<section class="course-map">
+    <div class="container">
+        <h2 class="section-title">
+            <i class="bi bi-diagram-3 me-2"></i>Карта курса
+        </h2>
+        <p class="section-subtitle">Выберите модуль для начала изучения. Каждый модуль содержит теоретические материалы, практические задания и интерактивные элементы.</p>
+
+        <div class="row g-4 mt-2">
+            {% for item in module_progress %}
+            <div class="col-lg-4 col-md-6">
+                <div class="module-card" data-bs-toggle="tooltip"
+                     title="Разделы: {% for s in item.module.sections.all %}{{ s.title }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                    <div class="module-card-header">
+                        <div class="module-icon">
+                            <i class="bi bi-{{ item.module.icon }}"></i>
+                        </div>
+                        <div class="module-number">Модуль {{ item.module.order_number }}</div>
+                    </div>
+                    <h3 class="module-title">{{ item.module.title }}</h3>
+                    <p class="module-description">{{ item.module.description|truncatewords:20 }}</p>
+                    <div class="module-progress">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Прогресс</small>
+                            <small>{{ item.completed }}/{{ item.total }}</small>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-accent" role="progressbar"
+                                 style="width: {{ item.percent }}%;"></div>
+                        </div>
+                    </div>
+                    <div class="module-sections">
+                        <small class="text-muted">
+                            <i class="bi bi-folder me-1"></i>
+                            Разделов: {{ item.module.section_count }}
+                        </small>
+                        <small class="text-muted ms-3">
+                            <i class="bi bi-file-text me-1"></i>
+                            Тем: {{ item.total }}
+                        </small>
+                    </div>
+
+                    <!-- Quick links to sections -->
+                    {% with sections=item.module.sections.all %}
+                    <div class="module-sections-list">
+                        {% for sec in sections %}
+                            {% with first_topic=sec.topics.all|first %}
+                            <a href="{% if first_topic %}{% url 'topic_detail' first_topic.pk %}{% else %}#{% endif %}" class="section-link-item">
+                                <i class="bi bi-chevron-right"></i>
+                                <span>{{ sec.title }}</span>
+                                <small class="text-muted">{{ sec.topics.count }} тем</small>
+                            </a>
+                            {% endwith %}
+                        {% endfor %}
+                    </div>
+                    {% endwith %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-journal-text" style="font-size: 3rem; color: #ccc;"></i>
+                <h4 class="mt-3 text-muted">Курс наполняется</h4>
+                <p>Материалы курса пока не добавлены. Обратитесь к администратору.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Quick Actions -->
+<section class="quick-actions">
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <a href="{% url 'dashboard' %}" class="action-card">
+                    <i class="bi bi-person-circle"></i>
+                    <h5>Личный кабинет</h5>
+                    <p>Просматривайте свой прогресс и результаты</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{% url 'calendar' %}" class="action-card">
+                    <i class="bi bi-calendar-event"></i>
+                    <h5>Календарь</h5>
+                    <p>Планируйте время для изучения материалов</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{% url 'materials' %}" class="action-card">
+                    <i class="bi bi-book"></i>
+                    <h5>Доп. материалы</h5>
+                    <p>Дополнительная литература и ресурсы</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Enable Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (el) {
+            return new bootstrap.Tooltip(el);
+        });
+
+        // Module card - toggle sections list on card click
+        document.querySelectorAll('.module-card').forEach(function(card) {
+            card.addEventListener('click', function(e) {
+                // Don't toggle if a link was clicked (let navigation happen)
+                if (e.target.closest('a')) return;
+                var sectionsList = this.querySelector('.module-sections-list');
+                if (sectionsList) {
+                    sectionsList.classList.toggle('show');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

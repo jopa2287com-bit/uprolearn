@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Календарь занятий — {{ course_title }}{% endblock %}
+
+{% block content %}
+<div class="calendar-page">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div>
+                <h1 class="page-title mb-1">
+                    <i class="bi bi-calendar-event me-2"></i>Календарь занятий
+                </h1>
+                <p class="text-muted mb-0">
+                    {{ total_events }} событий · {{ total_modules }} модулей
+                    {% if user.is_staff %}
+                    · <a href="{% url 'admin_calendar_events' %}"><i class="bi bi-gear"></i> Управлять</a>
+                    {% endif %}
+                    {% if user.is_authenticated %}
+                    · <a href="{% url 'dashboard' %}">Мой прогресс</a>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="calendar-legend d-flex gap-3">
+                <span class="legend-item">
+                    <span class="legend-dot" style="background:var(--accent)"></span> Событие
+                </span>
+                <span class="legend-item">
+                    <span class="legend-dot" style="background:#ffc107"></span> Важное
+                </span>
+                <span class="legend-item">
+                    <span class="legend-dot" style="background:var(--accent)"></span> Сегодня
+                </span>
+            </div>
+        </div>
+
+        <!-- Calendar Navigation -->
+        <div class="calendar-nav d-flex justify-content-between align-items-center mb-3">
+            <a href="?year={{ prev_year }}&month={{ prev_month }}"
+               class="btn btn-outline-accent btn-sm">
+                <i class="bi bi-chevron-left me-1"></i>{{ prev_label }}
+            </a>
+            <h2 class="calendar-month-title mb-0">{{ month_name }} {{ year }}</h2>
+            <a href="?year={{ next_year }}&month={{ next_month }}"
+               class="btn btn-outline-accent btn-sm">
+                {{ next_label }}<i class="bi bi-chevron-right ms-1"></i>
+            </a>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="calendar-grid-wrapper">
+            <div class="calendar-grid">
+                <!-- Day headers -->
+                <div class="calendar-header-row">
+                    <div class="calendar-header-cell">Пн</div>
+                    <div class="calendar-header-cell">Вт</div>
+                    <div class="calendar-header-cell">Ср</div>
+                    <div class="calendar-header-cell">Чт</div>
+                    <div class="calendar-header-cell">Пт</div>
+                    <div class="calendar-header-cell weekend">Сб</div>
+                    <div class="calendar-header-cell weekend">Вс</div>
+                </div>
+
+                <!-- Week rows -->
+                {% for week in week_rows %}
+                <div class="calendar-week-row">
+                    {% for day_data in week %}
+                    {% if day_data is None %}
+                    <div class="calendar-cell empty"></div>
+                    {% else %}
+                    <div class="calendar-cell
+                        {% if day_data.is_today %}today{% endif %}
+                        {% if day_data.is_past and not day_data.is_today %}past{% endif %}
+                        {% if day_data.events %}has-events{% endif %}">
+                        <div class="calendar-cell-header">
+                            <span class="day-number
+                                {% if day_data.is_today %}today-badge{% endif %}
+                                {% if day_data.is_past and not day_data.is_today %}past-day{% endif %}">
+                                {{ day_data.day }}
+                            </span>
+                        </div>
+                        <div class="calendar-events">
+                            {% for event in day_data.events %}
+                            <div class="calendar-event calendar-event-color-{{ event.color }}"
+                                 title="{{ event.title }}">
+                                {% if event.module %}
+                                <span class="event-module-badge event-module-{{ event.module.order_number }}">
+                                    М{{ event.module.order_number }}
+                                </span>
+                                {% endif %}
+                                <span class="event-title">{{ event.title|truncatechars:24 }}</span>
+                                {% if event.is_important %}
+                                <i class="bi bi-star-fill text-warning" style="font-size:0.55rem;flex-shrink:0"></i>
+                                {% endif %}
+                                {% if user.is_staff %}
+                                <a href="{% url 'admin_calendar_event_edit' event.pk %}"
+                                   class="event-edit-link"
+                                   onclick="event.stopPropagation()"
+                                   title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            {% if user.is_staff %}
+                            <a href="{% url 'admin_calendar_event_create' %}?date={{ day_data.date|date:'Y-m-d' }}"
+                               class="calendar-event-add"
+                               title="Добавить событие">
+                                <i class="bi bi-plus"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Bottom section: module legend + quick links -->
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-palette me-2"></i>Цветовая маркировка модулей</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="module-legend-grid">
+                            {% for mod in modules %}
+                            <div class="module-legend-item">
+                                <span class="legend-swatch legend-swatch-{{ mod.order_number }}">
+                                </span>
+                                <span>Модуль {{ mod.order_number }}: {{ mod.title|truncatechars:40 }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Событий в месяце:</span>
+                            <strong>{{ total_events }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Модулей:</span>
+                            <strong>{{ total_modules }}</strong>
+                        </div>
+                        <hr>
+                        {% if user.is_staff %}
+                        <a href="{% url 'admin_calendar_events' %}" class="btn btn-accent btn-sm w-100 mb-2">
+                            <i class="bi bi-gear me-1"></i> Управление событиями
+                        </a>
+                        {% endif %}
+                        <p class="small text-muted mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            События в календаре управляются администратором.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.calendar-page {
+    padding: 2rem 0;
+}
+
+/* Navigation */
+.calendar-nav {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.calendar-month-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--heading-color);
+}
+
+/* Legend */
+.calendar-legend .legend-item {
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.bg-accent { background: var(--accent); }
+
+/* Grid container */
+.calendar-grid-wrapper {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.calendar-grid {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header row */
+.calendar-header-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--accent-dark);
+    border-bottom: 2px solid var(--accent);
+}
+
+.calendar-header-cell {
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.calendar-header-cell.weekend {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+}
+
+/* Week row */
+.calendar-week-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.calendar-week-row:last-child {
+    border-bottom: none;
+}
+
+/* Cell */
+.calendar-cell {
+    min-height: 110px;
+    padding: 0.4rem;
+    border-right: 1px solid var(--border-color);
+    transition: background 0.15s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-cell:last-child {
+    border-right: none;
+}
+
+.calendar-cell.empty {
+    background: var(--bg-light);
+    min-height: 110px;
+}
+
+.calendar-cell.past {
+    background: rgba(0,0,0,0.02);
+}
+
+.calendar-cell.today {
+    background: var(--accent-light);
+    box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.calendar-cell.has-events:hover {
+    background: #f8fbff;
+}
+
+/* Cell header */
+.calendar-cell-header {
+    text-align: right;
+    margin-bottom: 0.2rem;
+}
+
+.day-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    border-radius: 50%;
+}
+
+.day-number.past-day {
+    color: #aaa;
+}
+
+.day-number.today-badge {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+}
+
+/* Events inside cell */
+.calendar-events {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.calendar-event {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    color: var(--text-dark);
+    background: #f0f4ff;
+    border-left: 3px solid var(--accent);
+    transition: all 0.15s ease;
+    text-decoration: none;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.calendar-event:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    transform: translateX(1px);
+    text-decoration: none;
+}
+
+.event-module-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    padding: 1px 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.event-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Module legend grid */
+.module-legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.5rem;
+}
+
+.module-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+}
+
+.legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    .calendar-cell {
+        min-height: 90px;
+        padding: 0.3rem;
+    }
+
+    .calendar-event {
+        font-size: 0.65rem;
+        padding: 1px 3px;
+    }
+
+    .event-title {
+        max-width: 60px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .calendar-nav {
+        padding: 0.75rem 1rem;
+    }
+
+    .calendar-month-title {
+        font-size: 1.1rem;
+    }
+
+    .calendar-header-cell {
+        font-size: 0.72rem;
+        padding: 0.5rem 0.3rem;
+    }
+
+    .calendar-cell {
+        min-height: 75px;
+        padding: 0.2rem;
+    }
+
+    .day-number {
+        width: 22px;
+        height: 22px;
+        font-size: 0.72rem;
+    }
+
+    .calendar-event {
+        font-size: 0.6rem;
+        padding: 1px 2px;
+    }
+
+    .event-module-badge {
+        font-size: 0.5rem;
+        padding: 0 3px;
+    }
+
+    .calendar-legend {
+        display: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .calendar-cell {
+        min-height: 60px;
+    }
+
+    .calendar-event .event-title {
+        display: none;
+    }
+
+    .calendar-event {
+        justify-content: center;
+    }
+
+    .calendar-header-cell {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.2rem;
+    }
+}
+
+/* Module color coding using data attributes */
+.calendar-event[data-module="1"] { border-left-color: #0066CC; }
+.calendar-event[data-module="2"] { border-left-color: #28a745; }
+.calendar-event[data-module="3"] { border-left-color: #dc3545; }
+.calendar-event[data-module="4"] { border-left-color: #ffc107; }
+.calendar-event[data-module="5"] { border-left-color: #17a2b8; }
+.calendar-event[data-module="6"] { border-left-color: #6f42c1; }
+
+.event-module-badge.event-module-1 { background: #0066CC; }
+.event-module-badge.event-module-2 { background: #28a745; }
+.event-module-badge.event-module-3 { background: #dc3545; }
+.event-module-badge.event-module-4 { background: #ffc107; color: #333; }
+.event-module-badge.event-module-5 { background: #17a2b8; }
+.event-module-badge.event-module-6 { background: #6f42c1; }
+
+.legend-swatch-1 { background: #0066CC; }
+.legend-swatch-2 { background: #28a745; }
+.legend-swatch-3 { background: #dc3545; }
+.legend-swatch-4 { background: #ffc107; }
+.legend-swatch-5 { background: #17a2b8; }
+.legend-swatch-6 { background: #6f42c1; }
+
+/* Print styles */
+@media print {
+    .calendar-nav { break-inside: avoid; }
+    .calendar-grid-wrapper { break-inside: avoid; }
+}
+</style>
+{% endblock %}

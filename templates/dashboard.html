@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Личный кабинет — {{ course_title }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="page-title">
+                        <i class="bi bi-person-circle me-2"></i>Личный кабинет
+                    </h1>
+                    <p class="text-muted mb-0">{{ user.get_full_name|default:user.username }}</p>
+                    {% if user.role == 'teacher' %}
+                        <span class="badge bg-warning text-dark mt-1">Преподаватель</span>
+                    {% else %}
+                        <span class="badge bg-info mt-1">Студент</span>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="{% url 'index' %}" class="btn btn-outline-accent">
+                        <i class="bi bi-arrow-left me-1"></i>К курсу
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Stats -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-card-icon bg-primary-subtle">
+                        <i class="bi bi-journal-check text-primary"></i>
+                    </div>
+                    <div class="stat-card-body">
+                        <h3 class="stat-number">{{ completed_topics }}</h3>
+                        <p class="stat-label">Тем завершено</p>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-primary" style="width: {{ overall_percent }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ overall_percent }}% от {{ total_topics }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-card-icon bg-success-subtle">
+                        <i class="bi bi-trophy text-success"></i>
+                    </div>
+                    <div class="stat-card-body">
+                        <h3 class="stat-number">{{ total_score }}</h3>
+                        <p class="stat-label">Всего баллов</p>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-success" style="width: {{ score_percent }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ score_percent }}% от {{ max_score }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-card-icon bg-info-subtle">
+                        <i class="bi bi-clock-history text-info"></i>
+                    </div>
+                    <div class="stat-card-body">
+                        <h3 class="stat-number">—</h3>
+                        <p class="stat-label">Время в системе</p>
+                        <small class="text-muted">Функция отслеживания времени находится в разработке</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module-by-module progress -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-steps me-2"></i>Прогресс по модулям</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Модуль</th>
+                                <th>Темы</th>
+                                <th>Прогресс</th>
+                                <th>Задания</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in module_stats %}
+                            <tr>
+                                <td>
+                                    <strong>Модуль {{ stat.module.order_number }}.</strong>
+                                    {{ stat.module.title }}
+                                </td>
+                                <td>{{ stat.completed_topics }}/{{ stat.total_topics }}</td>
+                                <td style="min-width: 150px;">
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar progress-bar-accent"
+                                             style="width: {{ stat.percent }}%"></div>
+                                    </div>
+                                    <small class="text-muted">{{ stat.percent }}%</small>
+                                </td>
+                                <td>{{ stat.completed_assignments }}/{{ stat.total_assignments }}</td>
+                                <td>
+                                    {% if stat.percent == 100 %}
+                                        <span class="badge bg-success">Завершено</span>
+                                    {% elif stat.percent > 0 %}
+                                        <span class="badge bg-warning text-dark">В процессе</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Не начат</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    Данные о модулях отсутствуют
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Results -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>История результатов</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_results %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Дата</th>
+                                <th>Тема</th>
+                                <th>Задание</th>
+                                <th>Результат</th>
+                                <th>Баллы</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in recent_results %}
+                            <tr>
+                                <td><small>{{ result.completed_at|date:"d.m.Y H:i" }}</small></td>
+                                <td>{{ result.assignment.topic.title|truncatewords:8 }}</td>
+                                <td>{{ result.assignment.task_text|truncatewords:6 }}</td>
+                                <td>
+                                    {% if result.is_correct %}
+                                        <span class="badge bg-success"><i class="bi bi-check"></i> Верно</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="bi bi-x"></i> Неверно</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ result.score }}/{{ result.assignment.max_score }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 2.5rem;"></i>
+                    <p class="mt-2">У вас пока нет результатов. Начните изучение курса!</p>
+                    <a href="{% url 'index' %}" class="btn btn-accent">
+                        <i class="bi bi-arrow-right me-1"></i>Перейти к курсу
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

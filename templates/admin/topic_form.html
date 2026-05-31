@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if topic %}Редактировать{% else %}Создать{% endif %} тему{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if topic %}
+                            <i class="bi bi-pencil me-2"></i>Редактировать тему
+                        {% else %}
+                            <i class="bi bi-plus-circle me-2"></i>Создать тему
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Раздел</label>
+                            <select name="section_id" class="form-select" required>
+                                <option value="">— Выберите раздел —</option>
+                                {% for sec in sections %}
+                                <option value="{{ sec.pk }}"
+                                    {% if topic and topic.section.pk == sec.pk %}selected{% endif %}
+                                    {% if request.GET.section == sec.pk|stringformat:'i' %}selected{% endif %}>
+                                    {{ sec.module.title }} → {{ sec.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Название темы</label>
+                            <input type="text" name="title" class="form-control" required
+                                   value="{{ topic.title|default:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Теоретический материал (HTML)</label>
+                            <p class="small text-muted">
+                                Используйте HTML-теги для форматирования:
+                                &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;code&gt;, &lt;pre&gt;, &lt;img&gt; и др.
+                            </p>
+                            <textarea name="theoretical_content" class="form-control font-monospace"
+                                      rows="20" style="font-size: 0.9rem;">{{ topic.theoretical_content|default:'' }}</textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Время чтения (минут)</label>
+                                <input type="number" name="reading_time" class="form-control"
+                                       value="{{ topic.reading_time|default:'10' }}" min="1">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Порядковый номер</label>
+                                <input type="number" name="order_number" class="form-control"
+                                       value="{{ topic.order_number|default:'0' }}" min="0">
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-accent">
+                                <i class="bi bi-check-lg me-1"></i>Сохранить
+                            </button>
+                            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

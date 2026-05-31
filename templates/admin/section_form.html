@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if section %}Редактировать{% else %}Создать{% endif %} раздел{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if section %}
+                            <i class="bi bi-pencil me-2"></i>Редактировать раздел
+                        {% else %}
+                            <i class="bi bi-plus-circle me-2"></i>Создать раздел
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Модуль</label>
+                            <select name="module_id" class="form-select" required>
+                                <option value="">— Выберите модуль —</option>
+                                {% for mod in modules %}
+                                <option value="{{ mod.pk }}"
+                                    {% if section and section.module.pk == mod.pk %}selected{% endif %}
+                                    {% if request.GET.module == mod.pk|stringformat:'i' %}selected{% endif %}>
+                                    Модуль {{ mod.order_number }}. {{ mod.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Название</label>
+                            <input type="text" name="title" class="form-control" required
+                                   value="{{ section.title|default:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea name="description" class="form-control" rows="3">{{ section.description|default:'' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Порядковый номер</label>
+                            <input type="number" name="order_number" class="form-control"
+                                   value="{{ section.order_number|default:'0' }}" min="0">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-accent">
+                                <i class="bi bi-check-lg me-1"></i>Сохранить
+                            </button>
+                            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

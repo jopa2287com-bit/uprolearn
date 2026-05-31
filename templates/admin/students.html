@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Студенты — Панель управления{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="bi bi-people me-2"></i>Список студентов</h4>
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ФИО</th>
+                            <th>Логин</th>
+                            <th>Email</th>
+                            <th>Прогресс</th>
+                            <th>Темы</th>
+                            <th>Задания</th>
+                            <th>Баллы</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sd in student_data %}
+                        <tr>
+                            <td>{{ sd.student.get_full_name|default:sd.student.username }}</td>
+                            <td>{{ sd.student.username }}</td>
+                            <td>{{ sd.student.email|default:'—' }}</td>
+                            <td style="min-width: 120px;">
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar progress-bar-accent"
+                                         style="width: {{ sd.percent }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ sd.percent }}%</small>
+                            </td>
+                            <td>{{ sd.completed_topics }}/{{ sd.total_topics }}</td>
+                            <td>{{ sd.done_assignments }}/{{ sd.total_assignments }}</td>
+                            <td>{{ sd.total_score }}</td>
+                            <td>
+                                <form method="post"
+                                      action="{% url 'admin_reset_student_progress' sd.student.pk %}"
+                                      onsubmit="return confirm('Сбросить весь прогресс студента {{ sd.student.get_full_name|default:sd.student.username }}? Это действие нельзя отменить.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Сбросить
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                Нет зарегистрированных студентов
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

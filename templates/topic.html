@@ -1,0 +1,660 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load course_extras %}
+
+{% block title %}{{ topic.title }} — {{ course_title }}{% endblock %}
+
+{% block content %}
+<div class="learning-layout">
+    <!-- Left Sidebar Navigation -->
+    <aside class="sidebar sidebar-nav" id="sidebarNav">
+        <div class="sidebar-header">
+            <button class="btn btn-sm btn-outline-secondary sidebar-close d-lg-none"
+                    onclick="toggleSidebar()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Содержание курса</h6>
+        </div>
+        <div class="sidebar-content">
+            {% for mod_data in sidebar_data %}
+            <div class="sidebar-module">
+                <div class="sidebar-module-title">
+                    <i class="bi bi-{{ mod_data.module.icon }} me-1"></i>
+                    Модуль {{ mod_data.module.order_number }}
+                </div>
+                {% for sec_data in mod_data.sections %}
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">
+                        <i class="bi bi-folder me-1"></i>
+                        {{ sec_data.section.title }}
+                    </div>
+                    {% for t_data in sec_data.topics %}
+                    <a href="{% url 'topic_detail' t_data.topic.pk %}"
+                       class="sidebar-topic {% if t_data.active %}active{% endif %}">
+                        {% if t_data.completed %}
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                        {% else %}
+                            <i class="bi bi-circle me-1"></i>
+                        {% endif %}
+                        {{ t_data.topic.title }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        <!-- Collapse toggle button -->
+        <button class="sidebar-collapse-btn d-none d-lg-flex" onclick="toggleSidebar()">
+            <i class="bi bi-chevron-left" id="sidebarCollapseIcon"></i>
+        </button>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="learning-content" id="learningContent">
+        <!-- Breadcrumbs -->
+        <nav aria-label="breadcrumb" class="breadcrumb-nav">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'index' %}"><i class="bi bi-house"></i> Главная</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="#">{{ module.title }}</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="#">{{ section.title }}</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">{{ topic.title }}</li>
+            </ol>
+
+            <!-- Mobile sidebar toggle / backdrop -->
+            <button class="btn btn-sm btn-outline-primary d-lg-none ms-2" id="sidebarToggleBtn"
+                    onclick="toggleSidebar()">
+                <i class="bi bi-list"></i> <span class="d-none d-sm-inline">Содержание</span>
+            </button>
+        </nav>
+
+        <!-- Topic Content -->
+        <article class="topic-content">
+            <h1 class="topic-title">{{ topic.title }}</h1>
+            <div class="topic-meta">
+                <span class="badge bg-info me-2">
+                    <i class="bi bi-clock me-1"></i>{{ topic.reading_time }} мин
+                </span>
+                <span class="badge bg-secondary">
+                    <i class="bi bi-folder me-1"></i>{{ section.title }}
+                </span>
+            </div>
+
+            <div class="topic-body">
+                {{ topic.theoretical_content|safe|default:"<p class='text-muted'>Содержание темы пока не добавлено.</p>" }}
+            </div>
+        </article>
+
+<!-- Interactive Elements -->
+        {% if interactive_elements %}
+        <section class="interactive-section">
+            <h2 class="section-title">
+                <i class="bi bi-controller me-2"></i>Интерактивные элементы
+            </h2>
+            {% for element in interactive_elements %}
+            <div class="interactive-card">
+                <div class="interactive-header">
+                    <span class="badge
+                        {% if element.element_type == 'simulator' %}bg-primary
+                        {% elif element.element_type == 'animation' %}bg-success
+                        {% else %}bg-warning text-dark{% endif %}">
+                        {% if element.element_type == 'simulator' %}
+                            <i class="bi bi-cpu me-1"></i>Симулятор
+                        {% elif element.element_type == 'animation' %}
+                            <i class="bi bi-film me-1"></i>Анимация
+                        {% else %}
+                            <i class="bi bi-box me-1"></i>3D-модель
+                        {% endif %}
+                    </span>
+                    <h5 class="mt-2">{{ element.title|default:element.get_element_type_display }}</h5>
+                </div>
+
+                {% if element.element_type == 'simulator' %}
+                    {% with sim_type=element.configurations.simulator_type %}
+
+                    {# --- Pipeline Simulator (default) --- #}
+                    {% if sim_type == 'pipeline' or not sim_type %}
+                    <div class="pipeline-simulator" data-config='{{ element.configurations|safe }}'>
+                        <div class="simulator-controls">
+                            <div class="row align-items-center mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Инструкции (по одной на строку):</label>
+                                    <textarea class="form-control code-input font-monospace" rows="5"
+                                    placeholder="ADD R1, R2&#10;SUB R3, R1&#10;LW R4, 0(R2)&#10;BEQ R1, R0, loop&#10;NOP">ADD R1, R2
+SUB R3, R1
+LW R4, 0(R2)
+BEQ R1, R0, loop
+NOP</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Состояние регистров:</label>
+                                    <div class="registers-display">
+                                        <div class="row g-1">
+                                            {% for reg in 'R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15'|split:' ' %}
+                                            <div class="col-3 col-md-4 col-lg-3">
+                                                <div class="register-cell">
+                                                    <small>{{ reg }}</small>
+                                                    <span class="reg-value" id="reg-{{ reg|lower }}">0x0</span>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pipeline-table-wrapper">
+                                <h6 class="fw-semibold mb-2">
+                                    <i class="bi bi-grid-3x3-gap me-1"></i>Визуализация конвейера
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered pipeline-table" id="pipelineTable">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th style="min-width: 120px;">Инструкция / Такт</th>
+                                                <th class="stage-cell">IF</th>
+                                                <th class="stage-cell">ID</th>
+                                                <th class="stage-cell">EX</th>
+                                                <th class="stage-cell">MEM</th>
+                                                <th class="stage-cell">WB</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pipelineBody">
+                                            <tr>
+                                                <td colspan="6" class="text-muted text-center">
+                                                    Нажмите "Запустить" для начала симуляции
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="simulator-buttons">
+                            <button class="btn btn-accent" onclick="startPipeline()">
+                                <i class="bi bi-play-fill me-1"></i>Запустить
+                            </button>
+                            <button class="btn btn-warning" onclick="pausePipeline()">
+                                <i class="bi bi-pause-fill me-1"></i>Пауза
+                            </button>
+                            <button class="btn btn-info" onclick="stepPipeline()">
+                                <i class="bi bi-forward-step me-1"></i>Шаг
+                            </button>
+                            <button class="btn btn-danger" onclick="resetPipeline()">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Сброс
+                            </button>
+                            <button class="btn btn-secondary" onclick="showPipelineHelp()">
+                                <i class="bi bi-question-circle me-1"></i>Справка
+                            </button>
+                        </div>
+                    </div>
+
+                    {# --- Number System Calculator --- #}
+                    {% elif sim_type == 'numbers' %}
+                    <div class="num-simulator" data-simulator="numbers">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Десятичная (Decimal):</label>
+                                <input type="number" class="form-control num-dec-input" value="0" min="-32768" max="65535">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Двоичная (Binary):</label>
+                                <input type="text" class="form-control num-bin-input font-monospace" value="0000000000000000" maxlength="16">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Шестнадцатеричная (Hex):</label>
+                                <input type="text" class="form-control num-hex-input font-monospace" value="0x0000" maxlength="6">
+                            </div>
+                        </div>
+
+                        <div class="num-bits-section mt-3">
+                            <label class="form-label fw-semibold">Битовое представление (16 бит):</label>
+                            <div class="num-bits-wrapper">
+                                <div class="num-bits-weights" id="numBitsWeights">
+                                    <div class="num-bit-label">15</div>
+                                    <div class="num-bit-label">14</div>
+                                    <div class="num-bit-label">13</div>
+                                    <div class="num-bit-label">12</div>
+                                    <div class="num-bit-label">11</div>
+                                    <div class="num-bit-label">10</div>
+                                    <div class="num-bit-label">9</div>
+                                    <div class="num-bit-label">8</div>
+                                    <div class="num-bit-label">7</div>
+                                    <div class="num-bit-label">6</div>
+                                    <div class="num-bit-label">5</div>
+                                    <div class="num-bit-label">4</div>
+                                    <div class="num-bit-label">3</div>
+                                    <div class="num-bit-label">2</div>
+                                    <div class="num-bit-label">1</div>
+                                    <div class="num-bit-label">0</div>
+                                </div>
+                                <div class="num-bits-display" id="numBitsDisplay"></div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <div class="num-info-card">
+                                    <small class="text-muted">Знаковое (signed):</small>
+                                    <strong id="numSignedVal" class="num-signed-val">0</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="num-info-card">
+                                    <small class="text-muted">Беззнаковое (unsigned):</small>
+                                    <strong id="numUnsignedVal" class="num-unsigned-val">0</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="num-quick-buttons mt-3">
+                            <span class="text-muted me-2" style="font-size:0.85rem">Быстрые числа:</span>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="0">0</button>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="1">1</button>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="10">10</button>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="42">42</button>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="100">100</button>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="255">255</button>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="1024">1024</button>
+                            <button class="btn btn-sm btn-outline-accent num-quick-btn" data-value="65535">65535</button>
+                        </div>
+                    </div>
+
+                    {# --- RISC-V Assembler / Emulator --- #}
+                    {% elif sim_type == 'riscv' %}
+                    <div class="riscv-simulator" data-simulator="riscv">
+                        <div class="row g-3">
+                            <div class="col-lg-7">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-code-slash me-1"></i>Код на RISC-V ассемблере:
+                                </label>
+                                <textarea class="form-control riscv-code-input font-monospace" rows="10" spellcheck="false"># Пример: сложение двух чисел
+addi  a0, zero, 5    # a0 = 5
+addi  a1, zero, 3    # a1 = 3
+add   a2, a0, a1     # a2 = a0 + a1 = 8</textarea>
+                            </div>
+                            <div class="col-lg-5">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-cpu me-1"></i>Регистры:
+                                </label>
+                                <div class="riscv-regs-display">
+                                    <div class="riscv-reg-header">
+                                        <span>PC: <strong class="riscv-pc-val">0x0000</strong></span>
+                                    </div>
+                                    <div class="riscv-regs-body"></div>
+                                </div>
+
+                                <label class="form-label fw-semibold mt-2">
+                                    <i class="bi bi-memory me-1"></i>Память (stack/data):
+                                </label>
+                                <div class="riscv-mem-display riscv-mem-body"></div>
+                            </div>
+                        </div>
+
+                        <div class="simulator-buttons">
+                            <button class="btn btn-accent" onclick="runRiscv()">
+                                <i class="bi bi-play-fill me-1"></i>Запустить
+                            </button>
+                            <button class="btn btn-info riscv-pause-btn" onclick="pauseRiscv()">
+                                <i class="bi bi-pause-fill me-1"></i>Пауза
+                            </button>
+                            <button class="btn btn-primary" onclick="stepRiscv()">
+                                <i class="bi bi-forward-step me-1"></i>Шаг
+                            </button>
+                            <button class="btn btn-danger" onclick="resetRiscv()">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Сброс
+                            </button>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <div class="riscv-log"></div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <span class="text-muted me-2" style="font-size:0.85rem">Загрузить пример:</span>
+                                <button class="btn btn-sm btn-outline-accent" onclick="loadRiscvExample('add')">Сложение</button>
+                                <button class="btn btn-sm btn-outline-accent" onclick="loadRiscvExample('loop')">Цикл</button>
+                                <button class="btn btn-sm btn-outline-accent" onclick="loadRiscvExample('mem')">Память</button>
+                                <button class="btn btn-sm btn-outline-accent" onclick="loadRiscvExample('func')">Функция</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# --- Cache Memory Simulator --- #}
+                    {% elif sim_type == 'cache' %}
+                    <div class="cache-simulator" data-simulator="cache">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Кол-во наборов (Sets):</label>
+                                <select class="form-select cache-sets">
+                                    <option value="2">2</option>
+                                    <option value="4" selected>4</option>
+                                    <option value="8">8</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Ассоциативность (Ways):</label>
+                                <select class="form-select cache-ways">
+                                    <option value="1">1 (Direct-mapped)</option>
+                                    <option value="2" selected>2 (2-way)</option>
+                                    <option value="4">4 (4-way)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Размер блока (B):</label>
+                                <select class="form-select cache-block-size">
+                                    <option value="4" selected>4</option>
+                                    <option value="8">8</option>
+                                    <option value="16">16</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Политика замещения:</label>
+                                <select class="form-select cache-policy">
+                                    <option value="LRU" selected>LRU</option>
+                                    <option value="FIFO">FIFO</option>
+                                    <option value="Random">Random</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-sm btn-outline-accent mb-3 cache-config-btn">
+                            <i class="bi bi-gear me-1"></i>Применить конфигурацию
+                        </button>
+
+                        <div class="cache-grid"></div>
+
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <input type="text" class="form-control font-monospace cache-addr-input" value="1000" placeholder="Адрес (hex)">
+                                    <button class="btn btn-accent cache-read-btn">
+                                        <i class="bi bi-arrow-down"></i> Read
+                                    </button>
+                                    <button class="btn btn-warning cache-write-btn">
+                                        <i class="bi bi-arrow-up"></i> Write
+                                    </button>
+                                    <button class="btn btn-danger cache-reset-btn">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Сброс
+                                    </button>
+                                </div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-accent cache-quick-btn" data-addr="1000">0x1000</button>
+                                    <button class="btn btn-sm btn-outline-accent cache-quick-btn" data-addr="1004">0x1004</button>
+                                    <button class="btn btn-sm btn-outline-accent cache-quick-btn" data-addr="1008">0x1008</button>
+                                    <button class="btn btn-sm btn-outline-accent cache-quick-btn" data-addr="100C">0x100C</button>
+                                    <button class="btn btn-sm btn-outline-accent cache-quick-btn" data-addr="1010">0x1010</button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="cache-stats">
+                                    <div><strong>Обращений:</strong> <span class="cache-stats-total">0</span></div>
+                                    <div><strong>Hits:</strong> <span class="cache-stats-hits text-success">0</span></div>
+                                    <div><strong>Misses:</strong> <span class="cache-stats-misses text-danger">0</span></div>
+                                    <div><strong>Hit Rate:</strong> <span class="cache-stats-rate">0.0%</span></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">История обращений:</label>
+                                <div class="cache-history"></div>
+                            </div>
+                        </div>
+
+                        <div class="cache-legend mt-3">
+                            <span class="cache-legend-item cache-valid">Valid</span>
+                            <span class="cache-legend-item cache-dirty">Dirty</span>
+                            <span class="cache-legend-item cache-invalid">Invalid/Free</span>
+                        </div>
+                    </div>
+
+                    {# --- MESI Protocol Simulator --- #}
+                    {% elif sim_type == 'mesi' %}
+                    <div class="mesi-simulator" data-simulator="mesi">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Количество ядер:</label>
+                                <select class="form-select mesi-cores">
+                                    <option value="2" selected>2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Адрес (hex):</label>
+                                <input type="text" class="form-control font-monospace mesi-addr-input" value="1000">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end gap-2">
+                                <button class="btn btn-danger mesi-reset-btn">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Сброс
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <div class="mesi-core-card">
+                                    <h6 class="mb-2">Core 0</h6>
+                                    <div class="mb-2">
+                                        <small class="text-muted">Reads: <strong class="mesi-core-reads-0">0</strong></small>
+                                        &nbsp;|&nbsp;
+                                        <small class="text-muted">Writes: <strong class="mesi-core-writes-0">0</strong></small>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-accent flex-fill mesi-read-btn" data-core="0"><i class="bi bi-arrow-down"></i> Read</button>
+                                        <button class="btn btn-sm btn-warning flex-fill mesi-write-btn" data-core="0"><i class="bi bi-arrow-up"></i> Write</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mesi-core-card">
+                                    <h6 class="mb-2">Core 1</h6>
+                                    <div class="mb-2">
+                                        <small class="text-muted">Reads: <strong class="mesi-core-reads-1">0</strong></small>
+                                        &nbsp;|&nbsp;
+                                        <small class="text-muted">Writes: <strong class="mesi-core-writes-1">0</strong></small>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-accent flex-fill mesi-read-btn" data-core="1"><i class="bi bi-arrow-down"></i> Read</button>
+                                        <button class="btn btn-sm btn-warning flex-fill mesi-write-btn" data-core="1"><i class="bi bi-arrow-up"></i> Write</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mesi-core-col" id="mesiCore2">
+                                <div class="mesi-core-card">
+                                    <h6 class="mb-2">Core 2</h6>
+                                    <div class="mb-2">
+                                        <small class="text-muted">Reads: <strong class="mesi-core-reads-2">0</strong></small>
+                                        &nbsp;|&nbsp;
+                                        <small class="text-muted">Writes: <strong class="mesi-core-writes-2">0</strong></small>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-accent flex-fill mesi-read-btn" data-core="2"><i class="bi bi-arrow-down"></i> Read</button>
+                                        <button class="btn btn-sm btn-warning flex-fill mesi-write-btn" data-core="2"><i class="bi bi-arrow-up"></i> Write</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mesi-core-col" id="mesiCore3">
+                                <div class="mesi-core-card">
+                                    <h6 class="mb-2">Core 3</h6>
+                                    <div class="mb-2">
+                                        <small class="text-muted">Reads: <strong class="mesi-core-reads-3">0</strong></small>
+                                        &nbsp;|&nbsp;
+                                        <small class="text-muted">Writes: <strong class="mesi-core-writes-3">0</strong></small>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-accent flex-fill mesi-read-btn" data-core="3"><i class="bi bi-arrow-down"></i> Read</button>
+                                        <button class="btn btn-sm btn-warning flex-fill mesi-write-btn" data-core="3"><i class="bi bi-arrow-up"></i> Write</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-semibold mb-2">
+                            <i class="bi bi-grid me-1"></i>Состояние кэш-линий (текущий адрес: <span class="mesi-current-addr">0x1000</span>)
+                        </h6>
+                        <div class="mesi-cache-grid"></div>
+
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold mb-1">
+                                    <i class="bi bi-bus-front me-1"></i>Шина (Bus Transactions)
+                                </h6>
+                                <div class="mesi-bus-log"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold mb-1">
+                                    <i class="bi bi-diagram-3 me-1"></i>Диаграмма переходов MESI
+                                </h6>
+                                <div class="mesi-transition-diagram"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-2">
+                            <span class="text-muted me-2" style="font-size:0.85rem">Сценарии:</span>
+                            <button class="btn btn-sm btn-outline-accent mesi-scenario-btn" data-scenario="read-shared">
+                                Чтение → Shared
+                            </button>
+                            <button class="btn btn-sm btn-outline-accent mesi-scenario-btn" data-scenario="write-exclusive">
+                                Запись → Exclusive
+                            </button>
+                            <button class="btn btn-sm btn-outline-accent mesi-scenario-btn" data-scenario="write-invalidate">
+                                Shared → Invalidate
+                            </button>
+                        </div>
+
+                        <div class="mesi-legend mt-2">
+                            <span class="mesi-legend-item"><span style="background:#dc3545"></span> M — Modified</span>
+                            <span class="mesi-legend-item"><span style="background:#28a745"></span> E — Exclusive</span>
+                            <span class="mesi-legend-item"><span style="background:#ffc107"></span> S — Shared</span>
+                            <span class="mesi-legend-item"><span style="background:#6c757d"></span> I — Invalid</span>
+                        </div>
+                    </div>
+
+                    {% endif %}
+                    {% endwith %}
+
+                {% elif element.url %}
+                <div class="interactive-iframe-wrapper">
+                    <iframe src="{{ element.url }}" frameborder="0"
+                            allowfullscreen sandbox="allow-scripts allow-same-origin"
+                            title="{{ element.title }}"></iframe>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Bottom Navigation -->
+        <nav class="topic-navigation">
+            <div class="row">
+                <div class="col-6">
+                    {% if prev_topic %}
+                    <a href="{% url 'topic_detail' prev_topic.pk %}" class="btn btn-outline-accent w-100">
+                        <i class="bi bi-arrow-left me-1"></i> Назад
+                    </a>
+                    {% else %}
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        <i class="bi bi-arrow-left me-1"></i> Назад
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="col-6">
+                    {% if next_topic %}
+                    <a href="{% url 'topic_detail' next_topic.pk %}" class="btn btn-accent w-100">
+                        Вперед <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                    {% else %}
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-accent flex-grow-1">
+                            <i class="bi bi-check-lg me-1"></i>Завершить
+                        </a>
+                        <a href="{% url 'module_test' module.pk %}" class="btn btn-accent flex-grow-1">
+                            <i class="bi bi-pencil-square me-1"></i>Тест модуля
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+    // Sidebar toggle for desktop (collapsed/expanded)
+    // Mobile toggle is handled in main.js via window.toggleSidebar
+    function toggleSidebar() {
+        if (window.innerWidth >= 992) {
+            const sidebar = document.getElementById('sidebarNav');
+            const content = document.getElementById('learningContent');
+            if (sidebar && content) {
+                sidebar.classList.toggle('collapsed');
+                content.classList.toggle('expanded');
+            }
+        }
+    }
+
+    // Assignment submission via AJAX
+    function submitAssignment(assignmentId) {
+        const resultDiv = document.getElementById('result-' + assignmentId);
+
+        // Get answer value
+        let answer = '';
+        const radioButtons = document.querySelectorAll('input[name="answer-' + assignmentId + '"]');
+        const textArea = document.getElementById('answer-' + assignmentId);
+
+        if (radioButtons.length > 0) {
+            const checked = document.querySelector('input[name="answer-' + assignmentId + '"]:checked');
+            if (!checked) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">Пожалуйста, выберите ответ</div>';
+                return;
+            }
+            answer = checked.value;
+        } else if (textArea) {
+            answer = textArea.value.trim();
+            if (!answer) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">Пожалуйста, введите ответ</div>';
+                return;
+            }
+        }
+
+        resultDiv.innerHTML = '<div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Проверка...</div>';
+
+        fetch('{% url "submit_assignment" 0 %}'.replace('0', assignmentId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({ answer: answer }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.is_correct) {
+                resultDiv.innerHTML =
+                    '<div class="alert alert-success"><i class="bi bi-check-circle me-1"></i>' +
+                    'Верно! +' + data.score + ' баллов</div>';
+                document.getElementById('assignment-' + assignmentId)
+                    .classList.add('assignment-completed');
+            } else {
+                resultDiv.innerHTML =
+                    '<div class="alert alert-danger"><i class="bi bi-x-circle me-1"></i>' +
+                    'Неверно. Правильный ответ: ' + (data.correct_answer || 'смотрите в материалах') +
+                    '</div>';
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Ошибка при отправке ответа</div>';
+        });
+    }
+</script>
+{% endblock %}
