@@ -590,19 +590,6 @@ add   a2, a0, a1     # a2 = a0 + a1 = 8</textarea>
 
 {% block extra_js %}
     <script>
-    // Sidebar toggle for desktop (collapsed/expanded)
-    // Mobile toggle is handled in main.js via window.toggleSidebar
-    function toggleSidebar() {
-        if (window.innerWidth >= 992) {
-            const sidebar = document.getElementById('sidebarNav');
-            const content = document.getElementById('learningContent');
-            if (sidebar && content) {
-                sidebar.classList.toggle('collapsed');
-                content.classList.toggle('expanded');
-            }
-        }
-    }
-
     // Assignment submission via AJAX
     function submitAssignment(assignmentId) {
         const resultDiv = document.getElementById('result-' + assignmentId);

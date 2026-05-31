@@ -172,10 +172,12 @@
 
         if (!navbarToggler || !navbarCollapse) return;
 
-        // Close navbar on link click on mobile
+        // Close navbar on link click on mobile (but NOT dropdown toggles)
         navbarCollapse.addEventListener('click', function (e) {
             var link = e.target.closest('.nav-link');
-            if (link && window.innerWidth < 992) {
+            var isDropdownToggle = e.target.closest('.dropdown-toggle') ||
+                                   e.target.closest('.dropdown-menu');
+            if (link && window.innerWidth < 992 && !isDropdownToggle) {
                 var bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
                 if (bsCollapse) {
                     bsCollapse.hide();
