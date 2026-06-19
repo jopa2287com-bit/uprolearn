@@ -156,8 +156,14 @@ LOGOUT_REDIRECT_URL = '/'
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = True
+    # Railway terminates SSL at the edge and forwards plain HTTP to the
+    # application, so forcing HTTPS redirects here causes an infinite loop.
+    # Set SECURE_SSL_REDIRECT=True in the environment only when the app is
+    # NOT behind a proxy that already handles SSL termination.
+    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1', 'yes')
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # Tell Django to trust the X-Forwarded-Proto header set by Railway's proxy
+    # so that request.is_secure() returns True for HTTPS requests.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
